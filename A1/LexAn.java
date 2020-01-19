@@ -103,7 +103,7 @@ public class LexAn {
 
         @Override
         public String toString() {
-            if (value != null) {
+            if (value != null && token != TOKENS.ERROR) {
                 return "<" + token + "," + value + ">";
             } else {
                 return "<" + token + ">";
@@ -318,7 +318,7 @@ public class LexAn {
 
         int intValue = chr - '0';
         double doubleValue = 0.0;
-        int expoenent = 0;
+        int exponent = 0;
         double pow = 10;
 
         chr = sin.next().charAt(0);
@@ -363,29 +363,33 @@ public class LexAn {
 
             while (sin.hasNext() && chr >= '0' && chr <= '9') {
 
-                expoenent = (int) pow * expoenent + chr - '0';
+                exponent = (int) pow * exponent + chr - '0';
     
                 chr = sin.next().charAt(0);
     
             }
 
-            expoenent *= sign;
+            exponent *= sign;
 
         }
 
-        readNextChar = false;
+        boolean error = ((chr >= 'a' && chr <= 'z') || (chr >= 'A' && chr <= 'Z'));
+
+        readNextChar = error;
         prevChr = chr;
 
-        if (doubleValue == 0 && expoenent >= 0) {
+        if (doubleValue == 0 && exponent >= 0) {
 
-            int finalValue = intValue * (int) Math.pow(10, expoenent);
+            int finalValue = intValue * (int) Math.pow(10, exponent);
 
-            return new Token<Integer>(finalValue, TOKENS.INTEGER);
+            return (!error) ? new Token<Integer>(finalValue, TOKENS.INTEGER)
+                            : new Token<String>(String.valueOf(finalValue) + chr, TOKENS.ERROR);
         } else {
 
-            double finalValue = (intValue + doubleValue) * Math.pow(10, expoenent);
+            double finalValue = (intValue + doubleValue) * Math.pow(10, exponent);
 
-            return new Token<Double>(finalValue, TOKENS.DOUBLE);
+            return (!error) ? new Token<Double>(finalValue, TOKENS.DOUBLE)
+                            : new Token<String>(String.valueOf(finalValue) + chr, TOKENS.ERROR);
 
         }
 
