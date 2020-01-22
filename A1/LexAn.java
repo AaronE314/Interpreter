@@ -13,6 +13,11 @@ public class LexAn {
     + "<head>\n"
     + "\t<meta charset=\"UTF-8\">\n"
     + "\t<title>Assignment1</title>\n"
+    + "\t<style>\n"
+    + "\tbody {\n"
+    + "\t\tbackground-color: #062E32;\n"
+    + "\t}\n"
+    + "\t</style>"
     + "</head>\n"
     + "<body>\n"
     + "<p>";
@@ -35,19 +40,19 @@ public class LexAn {
 
     public static enum TOKENS {
 
-        TYPE("TYPE", "#b3694d"),
-        ID("ID", "#f49725"),
-        OPERATOR("OPERATOR", "#00bdd6"),
-        KEYWORD("KEYWORD", "#ff5792"),
-        DOUBLE("DOUBLE", "#5842ff"),
-        INTEGER("INTEGER", "#5842ff"),
-        ERROR("ERROR", "#ff530f"),
-        BRACKET("BRACKET", "#8ca6a6"),
+        TYPE("TYPE", "#D67E5C"),//"#b3694d"),
+        ID("ID", "#E4B781"),//"#f49725"),
+        OPERATOR("OPERATOR", "#16A3B6"),//"#00bdd6"),
+        KEYWORD("KEYWORD", "#DF769B"),//"#ff5792"),
+        DOUBLE("DOUBLE", "#7060EB"),//"#5842ff"),
+        INTEGER("INTEGER", "#7060EB"),//"#5842ff"),
+        ERROR("ERROR", "red"),//"#ff530f"),
+        BRACKET("BRACKET", "#FFD700"),//"#8ca6a6"),
         FORMATING("FORMATING", "black"),
 
-        COMMA("COMMA", "black", ","),
-        SEMICOLON("SEMICOLON", "black", ";"),
-        DOT("DOT", "black", ".");
+        COMMA("COMMA", "#B2CACD", ","),
+        SEMICOLON("SEMICOLON", "#B2CACD", ";"),
+        DOT("DOT", "#B2CACD", ".");
         
         private String token;
         private String color;
@@ -168,7 +173,7 @@ public class LexAn {
     }
 
     public static String colouredTag(String colour, String contents) {
-        //return "<span style=\"color:" + colour + ";\">" + contents + "</span>";
+        // return "<span style=\"color:" + colour + ";\">" + contents + "</span>";
         return "<font color=" + colour + ">" + contents + "</font>";
     }
 
