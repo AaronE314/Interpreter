@@ -35,7 +35,7 @@ public class Parser {
     public static Token<?> lookahead;
 
     public static enum TOKEN_TYPE {
-        KEYWORD, IDENTIFIER;
+        KEYWORD, ID, CONSTANT;
     }
 
     public static enum TOKENS {
@@ -119,22 +119,24 @@ public class Parser {
     public static class SymbolValue {
 
         private int id;
-        private String name;
+        private Token<?> token;
         private TOKEN_TYPE type;
         
-        public SymbolValue(int id, String name, TOKEN_TYPE type) {
+        public SymbolValue(int id, Token<?> token, TOKEN_TYPE type) {
             this.id = id;
-            this.name = name;
+            this.token = token;
             this.type = type;
         }
 
         public int getId() { return this.id;}
-        public String getName() { return this.name;}
+        public Object getValue() { return this.token.getValue();}
+        public String getName() { return this.token.toString();}
+        public Token<?> getToken() { return this.token;}
         public TOKEN_TYPE getType() { return this.type;}
 
         @Override
         public String toString() {
-            return name;
+            return token.toString();
         }
     }
 
@@ -179,7 +181,7 @@ public class Parser {
 
         currentSymbolTable = MAIN_SYMBOL_TABLE_ID;
         for (String keyword: KEYWORDS) {
-            installSymbol(keyword, TOKEN_TYPE.KEYWORD);
+            installSymbol(new Token<String>(keyword, TOKENS.KEYWORD), TOKEN_TYPE.KEYWORD);
         }
 
         currentSymbolTable = tableId;
@@ -196,21 +198,21 @@ public class Parser {
 
     }
 
-    public static int installSymbol(String name, TOKEN_TYPE type) {
+    public static <E> int installSymbol(Token<?> name, TOKEN_TYPE type) {
         
         int id = -1;
 
         HashMap<Integer, SymbolValue> currentTable = symbolTables.get(currentSymbolTable);
         HashMap<String, Integer> currentSymbolNameToIdTable = symbolNameToIDTables.get(currentSymbolTable);
 
-        if (symbolNameToID.containsKey(name)) {
-            id = symbolNameToID.get(name);
-        } else if (currentSymbolNameToIdTable.containsKey(name)) {
-            id = currentSymbolNameToIdTable.get(name);
+        if (symbolNameToID.containsKey(name.getValueString())) {
+            id = symbolNameToID.get(name.getValueString());
+        } else if (currentSymbolNameToIdTable.containsKey(name.getValueString())) {
+            id = currentSymbolNameToIdTable.get(name.getValueString());
         } else {
             id = nextID++;
 
-            currentSymbolNameToIdTable.put(name, id);
+            currentSymbolNameToIdTable.put(name.getValueString(), id);
             currentTable.put(id, new SymbolValue(id, name, type));
         }
         return id;
@@ -292,7 +294,6 @@ public class Parser {
                     return getNextToken();
                 default:
                     return new Token<Void>(null, TOKENS.ERROR);
-
             }
 
         }
@@ -378,14 +379,24 @@ public class Parser {
 
             int finalValue = intValue * (int) Math.pow(10, exponent);
 
-            return (!error) ? new Token<Integer>(finalValue, TOKENS.INTEGER)
-                            : new Token<String>(String.valueOf(finalValue) + chr, TOKENS.ERROR);
+            if (!error) {
+                Token<Integer> token = new Token<Integer>(finalValue, TOKENS.INTEGER);
+                installSymbol(token, TOKEN_TYPE.CONSTANT);
+                return token;
+            } else {
+                return new Token<String>(String.valueOf(finalValue) + chr, TOKENS.ERROR);
+            } 
         } else {
 
             double finalValue = (intValue + doubleValue) * Math.pow(10, exponent);
 
-            return (!error) ? new Token<Double>(finalValue, TOKENS.DOUBLE)
-                            : new Token<String>(String.valueOf(finalValue) + chr, TOKENS.ERROR);
+            if (!error) {
+                Token<Double> token = new Token<Double>(finalValue, TOKENS.DOUBLE);
+                installSymbol(token, TOKEN_TYPE.CONSTANT);
+                return token;
+            } else {
+                return new Token<String>(String.valueOf(finalValue) + chr, TOKENS.ERROR);
+            } 
 
         }
 
@@ -414,7 +425,7 @@ public class Parser {
             return new Token<String>(name, TOKENS.KEYWORD);
         } else {
 
-            return new Token<Integer>(installSymbol(name, TOKEN_TYPE.IDENTIFIER), TOKENS.ID);
+            return new Token<Integer>(installSymbol(new Token<String>(name, TOKENS.ID), TOKEN_TYPE.ID), TOKENS.ID);
         }
 
     }
@@ -460,7 +471,7 @@ public class Parser {
                 value = currentTable.get(val.getValue());
             }
 
-            formatedCode += value.getName();
+            formatedCode += value.getToken().getValue();
         } else {
             formatedCode += val.getValueString();
         }
@@ -487,26 +498,32 @@ public class Parser {
 
             int key = entry.getKey();
 
-            String name = (key == 0) ? "Main Table" : symbolTable.get(key).getName();
+            String name = (key == 0) ? "Main Table" : symbolTable.get(key).getToken().getValue().toString();
             
             System.out.println();
-            System.out.println("----------------------------");
-            System.out.println(name);
-            System.out.println("----------------------------");
-            System.out.println("|" + formatCenter("ID", 4) + "|" + formatCenter("Values", 10) + "|");
+            System.out.println("---------------------------");
+            System.out.println(String.format("| %-24s|", name));
+            System.out.println("|-------------------------|");
+            System.out.println("|" + formatCenter("ID", 4) + "|" + String.format("%-10s%10s", "Value", "Type") + "|");
+            System.out.println(String.format("|%4s+%20s|", "-", "-").replace(" ", "-"));
 
             HashMap<Integer, SymbolValue> table = entry.getValue();
 
             table.entrySet().forEach(entry2 -> {
 
                 if (entry2.getValue().getType() != TOKEN_TYPE.KEYWORD) {
+                    SymbolValue sv = entry2.getValue();
+
                     System.out.println(
                         "|" + formatCenter(entry2.getKey().toString(), 4) + "|"
-                        + formatCenter(entry2.getValue().toString(), 10) + "|"
+                        + String.format("%-10s%10s", sv.getToken().getValue().toString()
+                        , entry2.getValue().getType()) + "|"
                     );
                 }
 
             });
+
+            System.out.println("---------------------------");
 
 
         });
@@ -564,18 +581,14 @@ public class Parser {
 
     public static boolean program() throws Exception {
 
-        // TODO: Double check format
-
-        return declarations()
-        && fdecls() 
+        return fdecls() 
+        && declarations()
         && statement_seq() 
         && match(TOKENS.DOT.getSymbol());
 
     }
 
     public static boolean fdecls() throws Exception {
-
-        // TODO: Fix left recursion
 
         if (fdec()) {
             match(TOKENS.SEMICOLON.getSymbol());
@@ -652,8 +665,6 @@ public class Parser {
     }
 
     public static boolean declarations() throws Exception {
-        
-        // TODO: FIX LEFT RECURSION IN DOC
 
         if (decl()) {
             match(TOKENS.SEMICOLON.getSymbol());

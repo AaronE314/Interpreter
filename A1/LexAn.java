@@ -40,14 +40,14 @@ public class LexAn {
 
     public static enum TOKENS {
 
-        TYPE("TYPE", "#D67E5C"),//"#b3694d"),
-        ID("ID", "#E4B781"),//"#f49725"),
-        OPERATOR("OPERATOR", "#16A3B6"),//"#00bdd6"),
-        KEYWORD("KEYWORD", "#DF769B"),//"#ff5792"),
-        DOUBLE("DOUBLE", "#7060EB"),//"#5842ff"),
-        INTEGER("INTEGER", "#7060EB"),//"#5842ff"),
-        ERROR("ERROR", "red"),//"#ff530f"),
-        BRACKET("BRACKET", "#FFD700"),//"#8ca6a6"),
+        TYPE("TYPE", "#D67E5C"),
+        ID("ID", "#E4B781"),
+        OPERATOR("OPERATOR", "#16A3B6"),
+        KEYWORD("KEYWORD", "#DF769B"),
+        DOUBLE("DOUBLE", "#7060EB"),
+        INTEGER("INTEGER", "#7060EB"),
+        ERROR("ERROR", "red"),
+        BRACKET("BRACKET", "#FFD700"),
         FORMATING("FORMATING", "black"),
 
         COMMA("COMMA", "#B2CACD", ","),
@@ -154,26 +154,11 @@ public class LexAn {
 
         System.out.println(prettyDraw(tokens));
 
-        // for (Token<?> token : tokens) {
-        //     if (token.token != TOKENS.FORMATING) {
-        //         System.out.println(token);
-        //     }
-        // }
-
-        // System.out.println("========================");
-
-        // symbolTable.entrySet().forEach(entry -> {
-        //     System.out.println(entry.getKey() + " " + entry.getValue());  
-        // });
-        
-        // System.out.println(HTML_START + program.replaceAll("\n", "<br>") + HTML_END);
-
         sin.close();
 
     }
 
     public static String colouredTag(String colour, String contents) {
-        // return "<span style=\"color:" + colour + ";\">" + contents + "</span>";
         return "<font color=" + colour + ">" + contents + "</font>";
     }
 
@@ -326,6 +311,8 @@ public class LexAn {
         int exponent = 0;
         double pow = 10;
 
+        boolean typeDouble = false;
+
         chr = sin.next().charAt(0);
 
         while (sin.hasNext() && chr >= '0' && chr <= '9') {
@@ -338,18 +325,26 @@ public class LexAn {
 
         if (chr == '.') {
 
+            typeDouble = true;
+
             pow = 0.1;
 
-            chr = sin.next().charAt(0);
-
-            do {
-
-                doubleValue += pow * (chr - '0');
-    
+            if (sin.hasNext()) {
+                
                 chr = sin.next().charAt(0);
-                pow /= 10;
-    
-            } while (sin.hasNext() && chr >= '0' && chr <= '9');
+                while (chr >= '0' && chr <= '9') {
+
+                    doubleValue += pow * (chr - '0');
+                    
+                    if (!sin.hasNext()) {
+                        break;
+                    }
+                    chr = sin.next().charAt(0);
+                    pow /= 10;
+                    
+                }
+
+            }
 
         }
         
@@ -362,6 +357,7 @@ public class LexAn {
             int sign = 1;
             if (chr == '-') {
                 sign = -1;
+                typeDouble = true;
                 chr = sin.next().charAt(0);
             }
 
@@ -383,7 +379,7 @@ public class LexAn {
         readNextChar = error;
         prevChr = chr;
 
-        if (doubleValue == 0 && exponent >= 0) {
+        if (!typeDouble) {
 
             int finalValue = intValue * (int) Math.pow(10, exponent);
 

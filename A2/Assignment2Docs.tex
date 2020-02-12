@@ -37,8 +37,8 @@ every state/.style={thick, fill=gray!10}, % sets the properties for each ’stat
 initial text=$ $, % sets the text that appears on the start arrow
 }
 
-\title{CP414 Assignment 1}
-\date{January 15, 2020}
+\title{CP471 Assignment 2}
+\date{February 14, 2020}
 \author{Aaron Exley}
 \setlength{\droptitle}{-3cm}
 \renewcommand{\headrulewidth}{0pt}
@@ -50,15 +50,18 @@ initial text=$ $, % sets the text that appears on the start arrow
 \begin{document}
 
 \maketitle
+
+\section*{LL(1) Language}
+
 \noindent
 <program>\ ::=\ <fdecls> <declarations> <statement\_seq>.\\
-<fdecls>\ ::=\ <fdec>;\ |\ <fdecls> <fdec>;\ |\\
+<fdecls>\ ::=\ <fdec>; <fdecls>\ |\ $\epsilon$ \\
 <fdec>\ ::=\ def <type> <fname> ( <params> ) <declarations> <statement\_seq> fed\\
 <params>\ ::=\ <type>\ <var><params\_rest>\ |\\
 <params\_rest>\ ::=\ , <params> | $\epsilon$ \\
 <fname>\ ::=\ <id>\\
 \\
-<declarations>\ ::=\ <decl>;\ |\ <declarations> <decl>;\ |\\
+<declarations>\ ::=\ <decl>; <delarations>\ |\ $\epsilon$\\
 <decl>\ ::=\ <type> <varlist>\\
 <type>\ ::=\ int\ |\ double\\
 <varlist>\ ::=\ <var><varlist\_rest>\\
@@ -101,7 +104,8 @@ initial text=$ $, % sets the text that appears on the start arrow
 
 \newpage
 \noindent
-First and Follow
+\section*{First}
+
 \noindent
 First(<program>) = \{def, \} \\
 First(<fdecls>) = \{def, $\epsilon$\}\\
@@ -133,6 +137,8 @@ First(<bfactor\_rest>) = \{id, integer, double, (, not\}\\
 First(<comp>) = \{<, >, ==, <=, >=, <>\}\\
 \\
 First(<var>) = \{id\}\\
+
+\section*{Follow}
 
 \end{document}
 
