@@ -61,7 +61,7 @@ initial text=$ $, % sets the text that appears on the start arrow
 <params\_rest>\ ::=\ , <params> | $\epsilon$ \\
 <fname>\ ::=\ <id>\\
 \\
-<declarations>\ ::=\ <decl>; <delarations>\ |\ $\epsilon$\\
+<declarations>\ ::=\ <decl>; <declarations>\ |\ $\epsilon$\\
 <decl>\ ::=\ <type> <varlist>\\
 <type>\ ::=\ int\ |\ double\\
 <varlist>\ ::=\ <var><varlist\_rest>\\
@@ -81,8 +81,9 @@ initial text=$ $, % sets the text that appears on the start arrow
 <expr\_rest>\ ::=\ +\ <term><expr\_rest>\ |\ -\ <term><expr\_rest>\ |\ $\epsilon$\\
 <term>\ ::=\ <factor><term\_rest>\\
 <term\_rest>\ ::=\ *\ <factor><term\_rest>\ |\ / <factor><term\_rest>\ |\ \% <factor><term\_rest>\ |\ $\epsilon$\\
-<factor>\ ::=\ <var>\ |\ <number>\ |\ (<expr>)\ |\ <fname>(<exprseq>)\\
-<exprseq>\ ::=\ <expr><exprseq\_rest>\\
+<factor>\ ::=\ <id><factor\_rest>\ |\ <number>\ |\ (<expr>)\\
+<factor\_rest>\ ::=\ (<exprseq>)\ |\ <var\_rest>\\
+<exprseq>\ ::=\ <expr><exprseq\_rest>\ | \\
 <exprseq\_rest>\ ::=\ ,\ <exprseq>\ |\ $\epsilon$\\
 \\
 <bexpr>\ ::=\ <bterm><bexpr\_rest>\\
@@ -94,51 +95,97 @@ initial text=$ $, % sets the text that appears on the start arrow
 \\
 <comp>\ ::=\ < | >\ |\ ==\ |\ <=\ |\ >=\ |\ <>\\
 \\
-<var>\ ::=\ <id>\ |\ <id>[<expr>]\\
+<var>\ ::=\ <id><var\_rest>\\
+<var\_rest>\ ::=\ [<expr>]\ | $\epsilon$\\
 \\
 <letter>\ ::=\ a\ |\ b\ |\ c\ |\ ...\ |\ z\\
 <digit>\ ::=\ 1\ |\ 2\ |\ 3\ |\ 4\ |\ 5\ |\ 6\ |\ 7\ |\ 8\ |\ 9\ |\ 0\\
-<id>\ ::=\ <letter>\ |\ <id><letter>\ |\ <id><digit>\\
+<id>\ ::=\ <letter><id\_rest>\\
+<id\_rest>\ ::=\ <letter><id\_rest>\ |\ <digit><id\_rest>\ |\ $\epsilon$\\
 \\
-<number>\ ::=\ <integer>\ |\ <double>\\
+<number>\ ::=\ <digit><number\_rest>\\
+<number\_rest>\ ::=\ <digit><number\_rest>\ |\ .<double>\ |\ e<exp>\ |\ $\epsilon$\\
+<double>\ ::=\ <digit><double\_rest>\\
+<double\_rest>\ ::=\ <digit><double\_rest>\ |\ e<exp>\ |\ $\epsilon$\\
+<exp>\ ::=\ <digit><exp\_rest>\ |\ -<digit><exp\_rest>\\
+<exp\_rest>\ ::=\ <digit><exp\_rest>\ |\ $\epsilon$\\
+\\
 
-\newpage
 \noindent
 \section*{First}
 
 \noindent
-First(<program>) = \{def, \} \\
+First(<program>) = \{def, int, double, a, b, c, ..., z, if, while, print, return, .\} \\
 First(<fdecls>) = \{def, $\epsilon$\}\\
 First(<fdec>) = \{def\}\\
-First(<params>) = \{int, double,\}\\
+First(<params>) = \{int, double, $\epsilon$\}\\
 First(<params\_rest) = \{, , $\epsilon$ \}\\
-First(<fname>) = \{id\}\\
 \\
-First(<declarations>) = First(<decl>)  = First(<type>) = \{int, double\}\\
+First(<declarations>) = \{int, double, $\epsilon$\}\\
+First(<decl>)  = First(<type>) = \{int, double\}\\
 \\
-First(<varlist>) = \{id\}\\
+First(<varlist>) = First(<var>) = First(<fname>) = \{a, b, c, ..., z\}\\
 First(<varlist\_rest>) = \{, , $\epsilon$\}\\
 \\
-First(<statement\_seq>) = First(<statement>) = \{id, if, while, print, return\}\\
+First(<statement\_seq>) = First(<statement>) = \{a, b, c, ..., z, if, while, print, return, $\epsilon$\}\\
 First(<statement\_seq\_rest>) = \{; , $\epsilon$\}\\
 \\
 First(<if\_rest>) = \{fi, else\}\\
 \\
-First(<expr>) = First(<term>) = First(<factor>) = First(<exprseq>) = \{id, integer, double, (\}\\
+First(<expr>) = First(<term>) = First(<factor>) = First(<exprseq>) = \{a, b, c, ..., z, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, (\}\\
 First(<expr\_rest>) = \{+, -, $\epsilon$\}\\
 First(<term\_rest>) = \{*, /, \%, $\epsilon$\}\\
+First(<factor\_rest>) = \{(, [, $\epsilon$\}\\
 First(<exprseq\_rest>) = \{, , $\epsilon$\}\\
 \\
 First(<bexpr>) = First(<bterm>) = First(<bfactor>) = \{(, not\}\\
-First(<bexpr\_rest>) = \{(or, $\epsilon$\}\\
-First(<bterm\_rest>) = \{(and, $\epsilon$\}\\
-First(<bfactor\_rest>) = \{id, integer, double, (, not\}\\
+First(<bexpr\_rest>) = \{or, $\epsilon$\}\\
+First(<bterm\_rest>) = \{and, $\epsilon$\}\\
+First(<bfactor\_rest>) = \{a, b, c, ..., z, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, (, not\}\\
 \\
 First(<comp>) = \{<, >, ==, <=, >=, <>\}\\
 \\
-First(<var>) = \{id\}\\
+First(<var\_rest>) = \{[, $\epsilon$\}\\
+\\
+First(<letter>) = First(<id>) = First(<number>) = First(<double>) = \{a, b, c, ..., z\}\\
+First(<digit>) = \{1, 2, 3, 4, 5, 6, 7, 8, 9, 0\}\\
+\\
+First(<id\_rest>) = \{a, b, c, ..., z, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, $\epsilon$\}\\
+First(<number\_rest>) = First(<double\_rest>) = \{a, b, c, ..., z, ., e, $\epsilon$\}\\
+First(<exp>) = \{a, b, c, ..., z, -\}\\
+First(<exp\_rest>) = \{a, b, c, ..., z, $\epsilon$\}\\
+
 
 \section*{Follow}
+
+Follow(<program>) = \{.\}\\
+Follow(<fdecls>) = \{int, double, a, b, c, ..., z, if, while, print, return,.\}\\
+Follow(<fdec>) = Follow(<decl>) = Follow(<varlist>) = Follow(<varlist\_rest>) = \{;\}\\
+Follow(<params>) = Follow(<params\_rest>) = Follow(<exprseq>) = Follow(<exprseq\_rest>) = Follow(<bfactor\_rest>) = \{)\}\\
+Follow(<fname>) = \{(\}\\
+\\
+Follow(<declarations>) = \{int, double, a, b, c, ..., z, fed, if, while, print, return, .\}\\
+Follow(<type>) = \{a, b, c, ..., z\}\\
+\\
+Follow(<statement\_seq>) = Follow(<statement\_seq\_rest>) =\{fi, else, od, fed, .\}\\
+\\
+Follow(<statement>) = Follow(<if\_rest>) = \{;, fi, else, od, fed, .\}\\
+\\
+Follow(<expr>) = Follow(<expr\_rest>) = Follow(<comp>) = \{), , , ;,, ], fi, else, od, fed, .\}\\
+Follow(<term>) = Follow(<term\_rest>) = \{+, -, ), , , ;, fi, else, od, fed, .\}\\
+Follow(<factor>) = Follow(<factor\_rest>) = Follow(<number>) = Follow(<number\_rest>) = Follow(<double>) = Follow(<double\_rest>) = Follow(<exp>) = Follow(<exp\_rest>) = \{*, /, \%, +, -, ), , , ;, fi, else, od, fed, .\}\\
+\\
+Follow(<bexpr>) = Follow(<bexpr\_rest>) = \{then, do\}\\
+Follow(<bterm>) = Follow(<bterm\_rest> = \{or, then, do\}\\
+Follow(<bfactor>) = \{and, then, do\}\\
+\\
+Follow(<var>) = Follow(<var\_rest>) = \{=, ), ;, *, /, \%, +, -, ), , , ;, fi, else, od, fed, .\}\\
+Follow(<letter>) = Follow(<digit>) = \{a, b, c, ..., z, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, (, [, ), ;, =, *, /, \%, +, -, ), , , ;, fi, else, od, fed, .\}\\
+\\
+Follow(<id>) = Follow(<id\_rest>) = \{(, [, ), ;, =, *, /, \%, +, -, ), , , ;, fi, else, od, fed, .\}\\
+
+
+
 
 \end{document}
 

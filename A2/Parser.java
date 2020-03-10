@@ -1,6 +1,7 @@
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -11,7 +12,7 @@ public class Parser {
     public static HashMap<Integer, SymbolValue> symbolTable = new HashMap<>();
     public static HashMap<String, Integer> symbolNameToID = new HashMap<>();
 
-    public static HashMap<Integer, HashMap<Integer, SymbolValue>> symbolTables = new HashMap<>();
+    public static LinkedHashMap<Integer, HashMap<Integer, SymbolValue>> symbolTables = new LinkedHashMap<>();
     public static HashMap<Integer, HashMap<String, Integer>> symbolNameToIDTables = new HashMap<>();
 
     public static final String KEYWORDS[] = { "while", "do", "od", "def", "fed", "if", "then", "else", "fi", "print", "return", "or", "and"};
@@ -35,7 +36,7 @@ public class Parser {
     public static Token<?> lookahead;
 
     public static enum TOKEN_TYPE {
-        KEYWORD, ID, CONSTANT;
+        KEYWORD, ID, CONSTANT, GLOBAL;
     }
 
     public static enum TOKENS {
@@ -55,28 +56,21 @@ public class Parser {
         DOT("DOT", "#B2CACD", ".");
         
         private String token;
-        // private String color;
         private String symbol;
 
         private TOKENS(String token, String color, String symbol) {
             this.token = token;
-            // this.color = color;
             this.symbol = symbol;
         }
 
         private TOKENS(String token, String color) {
             this.token = token;
-            // this.color = color;
             this.symbol = "";
         }
 
         private String getSymbol() {
             return symbol;
         }
-
-        // private String getColor() {
-        //     return color;
-        // }
 
         @Override
         public String toString() {
@@ -88,14 +82,69 @@ public class Parser {
 
         private T value;
         private TOKENS token;
+        private String idType;
+        private int constId;
+        private Class<T> type;
 
+        @SuppressWarnings("unchecked")
         public Token(T value, TOKENS token) {
             this.value = value;
             this.token = token;
+
+            if (token == TOKENS.INTEGER) {
+                this.type = (Class<T>) Integer.class;
+            } else if (token == TOKENS.DOUBLE) {
+                this.type = (Class<T>) Double.class;
+            } else {
+                this.type = null;
+            }
+        }
+
+        public Class<T> getType() {
+            return this.type;
+        }
+
+        public void flipSign() {
+            Object oVal = this.value;
+
+            if (oVal instanceof Integer) {
+                int val = (int) oVal;
+
+                val *= -1;
+
+                this.value = type.cast(val);
+
+            } else if (oVal instanceof Double) {
+                double val = (double) oVal;
+
+                val *= -1;
+
+                this.value = type.cast(val);
+            }
         }
 
         public T getValue() {
             return value;
+        }
+
+        public void setIdType(String type) {
+            this.idType = type;
+        }
+
+        public void setValue(T val) {
+            this.value = val;
+        }
+
+        public void setConstId(int id) {
+            this.constId = id;
+        }
+
+        public int getConstId() {
+            return this.constId;
+        }
+
+        public String getIdType() {
+            return this.idType;
         }
 
         public String getValueString() {
@@ -121,13 +170,23 @@ public class Parser {
         private int id;
         private Token<?> token;
         private TOKEN_TYPE type;
+        private boolean global;
         
         public SymbolValue(int id, Token<?> token, TOKEN_TYPE type) {
             this.id = id;
             this.token = token;
             this.type = type;
+            this.global = false;
         }
 
+        public SymbolValue(int id, Token<?> token, TOKEN_TYPE type, boolean global) {
+            this.id = id;
+            this.token = token;
+            this.type = type;
+            this.global = global;
+        }
+
+        public boolean isGlobal() {return this.global;}
         public int getId() { return this.id;}
         public Object getValue() { return this.token.getValue();}
         public String getName() { return this.token.toString();}
@@ -207,6 +266,12 @@ public class Parser {
 
         if (symbolNameToID.containsKey(name.getValueString())) {
             id = symbolNameToID.get(name.getValueString());
+
+            if (!currentSymbolNameToIdTable.containsKey(name.getValueString())) {
+                currentSymbolNameToIdTable.put(name.getValueString(), id);
+                currentTable.put(id, new SymbolValue(id, name, type, true));
+            }
+
         } else if (currentSymbolNameToIdTable.containsKey(name.getValueString())) {
             id = currentSymbolNameToIdTable.get(name.getValueString());
         } else {
@@ -381,7 +446,8 @@ public class Parser {
 
             if (!error) {
                 Token<Integer> token = new Token<Integer>(finalValue, TOKENS.INTEGER);
-                installSymbol(token, TOKEN_TYPE.CONSTANT);
+                int id = installSymbol(token, TOKEN_TYPE.CONSTANT);
+                token.setConstId(id);
                 return token;
             } else {
                 return new Token<String>(String.valueOf(finalValue) + chr, TOKENS.ERROR);
@@ -392,7 +458,8 @@ public class Parser {
 
             if (!error) {
                 Token<Double> token = new Token<Double>(finalValue, TOKENS.DOUBLE);
-                installSymbol(token, TOKEN_TYPE.CONSTANT);
+                int id = installSymbol(token, TOKEN_TYPE.CONSTANT);
+                token.setConstId(id);
                 return token;
             } else {
                 return new Token<String>(String.valueOf(finalValue) + chr, TOKENS.ERROR);
@@ -444,10 +511,12 @@ public class Parser {
 
     public static void newLineInFormat() {
 
-        formatedCode += "\n";
-        
-        for (int i = 0; i < indentNum; i++) {
-            formatedCode += "   ";
+        if (!formatedCode.endsWith("\n")) {
+            formatedCode += "\n";
+
+            for (int i = 0; i < indentNum; i++) {
+                formatedCode += "   ";
+            }
         }
     }
 
@@ -504,7 +573,7 @@ public class Parser {
             System.out.println("---------------------------");
             System.out.println(String.format("| %-24s|", name));
             System.out.println("|-------------------------|");
-            System.out.println("|" + formatCenter("ID", 4) + "|" + String.format("%-10s%10s", "Value", "Type") + "|");
+            System.out.println("|" + formatCenter("ID", 4) + "|" + String.format("%-10s%10s", "Value", "Properties") + "|");
             System.out.println(String.format("|%4s+%20s|", "-", "-").replace(" ", "-"));
 
             HashMap<Integer, SymbolValue> table = entry.getValue();
@@ -517,7 +586,7 @@ public class Parser {
                     System.out.println(
                         "|" + formatCenter(entry2.getKey().toString(), 4) + "|"
                         + String.format("%-10s%10s", sv.getToken().getValue().toString()
-                        , entry2.getValue().getType()) + "|"
+                        , (sv.isGlobal() ? TOKEN_TYPE.GLOBAL + ", " : "") + entry2.getValue().getType() + ((sv.getToken().getIdType() != null) ? ", " + sv.getToken().getIdType() : "")) + "|"
                     );
                 }
 
@@ -540,12 +609,13 @@ public class Parser {
                 printSymbolTables();
 
             } else {
+                System.out.println(formatedCode);
                 System.err.println("Error Invalid program format");
             }
         } catch (Exception e) {
 
+            System.out.println(formatedCode);
             System.err.println(e.getMessage());
-            // e.printStackTrace();
 
         }
 
@@ -581,10 +651,28 @@ public class Parser {
 
     public static boolean program() throws Exception {
 
-        return fdecls() 
-        && declarations()
-        && statement_seq() 
-        && match(TOKENS.DOT.getSymbol());
+        boolean correctFormat = fdecls();
+
+        if (correctFormat) {
+            correctFormat = declarations();
+
+            if (correctFormat) {
+                correctFormat = statement_seq();
+
+                if (correctFormat) {
+                    match(TOKENS.DOT.getSymbol());
+                    return true;
+                } else {
+                    error("id, if, while, print or return", lookahead.getValueString());
+                }
+            } else {
+                error("int or double", lookahead.getValueString());
+            }
+        } else {
+            error("def", lookahead.getValueString());
+        }
+
+        return true;
 
     }
 
@@ -636,8 +724,9 @@ public class Parser {
 
     public static boolean params() throws Exception {
 
-        if (type()) {
-            var();
+        String t = type();
+        if (t != null) {
+            var(t);
             params_rest();
             return true;
         } else {
@@ -661,7 +750,7 @@ public class Parser {
 
     public static int fname() throws Exception {
 
-        return id();
+        return id(null);
     }
 
     public static boolean declarations() throws Exception {
@@ -679,37 +768,39 @@ public class Parser {
 
     public static boolean decl() throws Exception {
 
-        return type() && varlist();
+        String t = type();
+
+        return t != null && varlist(t);
 
     }
 
-    public static boolean type() throws Exception {
+    public static String type() throws Exception {
         
         if (lookahead.getValueString().equals("int")) {
             match("int");
-            return true;
+            return "INT";
         } else if (lookahead.getValueString().equals("double")){
             match("double");
-            return true;
+            return "DOUBLE";
         }
 
-        return false;
+        return null;
 
     }
 
-    public static boolean varlist() throws Exception {
+    public static boolean varlist(String t) throws Exception {
 
-        var();
-        varlist_rest();
+        var(t);
+        varlist_rest(t);
 
         return true;
     }
 
-    public static boolean varlist_rest() throws Exception {
+    public static boolean varlist_rest(String t) throws Exception {
 
         if (lookahead.getValueString().equals(",")) {
             match(",");
-            varlist();
+            varlist(t);
             return true;
         } else {
             return true;
@@ -736,7 +827,7 @@ public class Parser {
 
     public static boolean statement() throws Exception {
 
-        if (var()) {
+        if (var(null)) {
             match("=");
             expr();
             return true;
@@ -776,7 +867,7 @@ public class Parser {
             return true;
         }
 
-        return false;
+        return true;
     }
 
     public static boolean if_rest() throws Exception {
@@ -800,7 +891,7 @@ public class Parser {
             return true;
         }
 
-        error("<if_rest>", lookahead.getValueString());
+        error("fi or else", lookahead.getValueString());
         return false;
     }
 
@@ -854,20 +945,11 @@ public class Parser {
 
     public static boolean factor() throws Exception {
 
-        if (fname() != -1) {
+        if (id(null) != -1) {
 
-            if (lookahead.getValueString().equals("[")) {
-                match("[");
-                expr();
-                match("]");
-            } else if (lookahead.getValueString().equals("(")) {
-                match("(");
-                exprseq();
-                match(")");
-            }
-            return true;
+            return factor_rest();
         }
-        if (number()) {
+        if (number() != null) {
             return true;
         } else if (lookahead.getValueString().equals("(")) {
             match("(");
@@ -876,11 +958,29 @@ public class Parser {
             return true;
         } else if (lookahead.getValueString().equals("-")) {
             match("-");
-            number();
+            Token<?> val = number();
+            if (val != null) {
+                Token<?> val2 = symbolTables.get(currentSymbolTable).get(val.getConstId()).getToken();
+                val2.flipSign();
+            }
             return true;
         }
 
-        error("<factor>", lookahead.getValueString());
+        error("id, number or -", lookahead.getValueString());
+        return false;
+    }
+
+    public static boolean factor_rest() throws Exception {
+        
+        if (lookahead.getValueString().equals("(")) {
+            match("(");
+            exprseq();
+            match(")");
+            return true;
+        } else if (var_rest()) {
+            return true;
+        }
+
         return false;
     }
 
@@ -944,7 +1044,6 @@ public class Parser {
             return true;
         }
 
-        // error("<bfactor>", lookahead.getValueString());
         return false;
     }
 
@@ -958,7 +1057,7 @@ public class Parser {
             return true;
         }
 
-        error("<bfactor_rest>", lookahead.getValueString());
+        error("id, number, ( or not", lookahead.getValueString());
         return false;
     }
 
@@ -986,43 +1085,55 @@ public class Parser {
                 match("<>");
                 return true;
             default:
-                error("<comp>", lookahead.getValueString());
+                error("<, >, ==, <=, >= or <>", lookahead.getValueString());
                 return false;
         }
 
     }
 
-    public static boolean var() throws Exception {
+    public static boolean var(String type) throws Exception {
 
         if (lookahead.getToken() == TOKENS.ID) {
+            if (lookahead.getIdType() == null && type != null) {
+                symbolTables.get(currentSymbolTable).get(lookahead.getValue()).getToken().setIdType(type);
+            }
             try {
                 addToFormat(lookahead);
                 lookahead = getNextToken();
             } catch(Exception e) {
-                error("<id>", lookahead.getValueString());
+                error("id", lookahead.getValueString());
             }
 
-            if (lookahead.getValueString().equals("[")) {
-                match("[");
-                expr();
-                match("]");
-            }
-            return true;
+            return var_rest();
         }
 
         return false;
     }
 
-    public static int id() throws Exception {
+    public static boolean var_rest() throws Exception{
+
+        if (lookahead.getValueString().equals("[")) {
+            match("[");
+            expr();
+            match("]");
+        }
+
+        return true;
+    }
+
+    public static int id(String type) throws Exception {
 
         if (lookahead.getToken() == TOKENS.ID) {
+            if (lookahead.getIdType() == null && type != null) {
+                symbolTables.get(currentSymbolTable).get(lookahead.getValue()).getToken().setIdType(type);
+            }
             Object value = lookahead.getValue();
             int symbolIndex = (int) value;
             try {
                 addToFormat(lookahead);
                 lookahead = getNextToken();
             } catch(Exception e) {
-                error("<id>", lookahead.getValueString());
+                error("id", lookahead.getValueString());
             }
             return symbolIndex;
         }
@@ -1030,18 +1141,21 @@ public class Parser {
         return -1;
     }
 
-    public static boolean number() throws Exception {
+    public static Token<?> number() throws Exception {
 
         if (lookahead.getToken() == TOKENS.DOUBLE || lookahead.getToken() == TOKENS.INTEGER) {
+
+            Token<?> num = lookahead;
+
             try {
                 addToFormat(lookahead);
                 lookahead = getNextToken();
             } catch(Exception e) {
-                error("<number>", lookahead.getValueString());
+                error("number", lookahead.getValueString());
             }
-            return true;
+            return num;
         }
 
-        return false;
+        return null;
     }
 }
