@@ -1,0 +1,48 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug (Launch) - Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-Interpreter<A3_8bb08715>",
+            "request": "launch",
+            "mainClass": "Interpreter",
+            "projectName": "A3_8bb08715"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-LexAn<A3_8bb08715>",
+            "request": "launch",
+            "mainClass": "LexAn",
+            "projectName": "A3_8bb08715"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-Parser<A3_8bb08715>",
+            "request": "launch",
+            "mainClass": "Parser",
+            "projectName": "A3_8bb08715"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-test<A3_8bb08715>",
+            "request": "launch",
+            "mainClass": "test",
+            "projectName": "A3_8bb08715"
+        },
+        {
+            "type": "java",
+            "name": "Debug (Launch)-Parser",
+            "request": "launch",
+            "mainClass": "Parser"
+        }
+    ]
+}
