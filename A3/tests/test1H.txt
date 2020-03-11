@@ -1,0 +1,11 @@
+int i;
+double x;
+i = 0;
+x = 5.0;
+
+while ((i < 500) and not (x > 1000)) do 
+    i = i + 1;
+    x = x * 2;
+od;
+
+print(x);.

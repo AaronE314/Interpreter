@@ -1,0 +1,11 @@
+int i;
+double x;
+i = 0;
+x = 5;
+
+while ((1 == 1) and not (i > 5)) do 
+    i = i + 1;
+    x = x * 2;
+od;
+
+print(x);.

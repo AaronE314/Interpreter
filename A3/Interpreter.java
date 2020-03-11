@@ -24,7 +24,7 @@ public class Interpreter {
     public static LinkedHashMap<Integer, HashMap<Integer, SymbolValue>> symbolTables = new LinkedHashMap<>();
     public static HashMap<Integer, HashMap<String, Integer>> symbolNameToIDTables = new HashMap<>();
 
-    public static final String KEYWORDS[] = { "while", "do", "od", "def", "fed", "if", "then", "else", "fi", "print", "return", "or", "and"};
+    public static final String KEYWORDS[] = { "while", "do", "od", "def", "fed", "if", "then", "else", "fi", "print", "return", "or", "and", "not"};
     public static final HashSet<String> TYPES = new HashSet<>(
         Arrays.asList(new String[] {"int", "double"}));
 
@@ -32,6 +32,9 @@ public class Interpreter {
     public static char prevChr = 0;
 
     public static Scanner sin;
+
+    public static boolean printTables = false;
+    public static boolean printTree = false;
 
     public static Stack<HashMap<Integer, SymbolValue>> executionStack = new Stack<>();
     public static Stack<ReturnVal> returnStack = new Stack<>();
@@ -46,6 +49,7 @@ public class Interpreter {
 
     public static int lineCount = 1;
     public static int charCount = 1;
+    public static String currFName = "main";
 
     public static Token<?> lookahead;
 
@@ -98,7 +102,7 @@ public class Interpreter {
 
     public static enum NODE_TYPE {
 
-        ID, TYPE, ASSIGN, CONSTANT_INT, CONSTANT_DOUBLE, OP, BOP, BOOL, KEYWORD, FUNCTION, PARAMS;
+        ID, TYPE, ASSIGN, CONSTANT_INT, CONSTANT_DOUBLE, OP, BOOL, KEYWORD, FUNCTION, PARAMS, DECL;
 
     }
 
@@ -195,6 +199,15 @@ public class Interpreter {
             }
         }
 
+    }
+
+    public static class ParseException extends Exception {
+        
+        private static final long serialVersionUID = 356363453L; 
+
+        public ParseException(String message) {
+            super(message);
+        }
     }
 
     public static class Token<T> implements Serializable {
@@ -329,6 +342,21 @@ public class Interpreter {
     }
 
     public static void main(String[] args) {
+
+        if (args.length > 0) {
+            for (int i = 0; i < args.length; i++) {
+                if (args[i].equals("-s")) {
+                    printTables = true;
+                }
+                if (args[i].equals("-t")) {
+                    printTree = true;
+                }
+                if (args[i].equals("-h")) {
+                    System.out.println("-s: to print symbol tables");
+                    System.out.println("-t: to print parse tree");
+                }
+            }
+        }
         
         sin = new Scanner(System.in);
         
@@ -349,7 +377,27 @@ public class Interpreter {
         }
 
         // Call to parse
-        parse();
+        Node root = parse();
+
+        if (root != null) {
+            if (printTables || printTree) {
+                System.out.println("Program Output:");
+            }
+
+            executionStack.push(symbolTables.get(MAIN_SYMBOL_TABLE_ID));
+            returnStack.push(new ReturnVal());
+            try {
+                Eval(root);
+            } catch (RuntimeException e) {
+                if (e.getMessage() != null) {
+                    System.out.println("RuntimeException: " + e.getMessage());
+                } else {
+                    e.printStackTrace();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
         sin.close();
 
@@ -689,7 +737,34 @@ public class Interpreter {
         return String.format("%-" + width + "s", str);
     }
 
-    // @SuppressWarnings("unchecked")
+    public static void initIDValue(int id) {
+        SymbolValue sv = executionStack.peek().get(id);
+
+        if (sv == null) {
+            sv = symbolTables.get(MAIN_SYMBOL_TABLE_ID).get(id);
+        }
+
+        if (sv != null) {
+
+            Token<?> token = sv.getToken();
+
+            if (token.idValue != null) {
+                throw new RuntimeException(token.value + " has already been declared");
+            }
+            
+            if (token.idType.equals("INT")) {
+                token.idValue = (int) 0;
+            } else if (token.idType.equals("DOUBLE")) {
+                token.idValue = (double) 0.0;
+            } else {
+                throw new RuntimeException(token.idValue + " is an unknown type");
+            }
+
+        } else {
+            throw new RuntimeException(id + "not found");
+        }
+    }
+
     public static void setIDValue(int id, Object value) {
 
         SymbolValue sv = executionStack.peek().get(id);
@@ -701,22 +776,29 @@ public class Interpreter {
         if (sv != null) {
 
             Token<?> token = sv.getToken();
+
+            if (token.idValue == null) {
+                throw new RuntimeException(token.value + " has not been declared");
+            }
             
             if (token.idType.equals("INT")) {
-                if (value instanceof Double) {
-                    token.idValue = (int) ((Double) value).intValue();
-                } else {
+                if (value instanceof Integer) {
                     token.idValue = (int) value;
+                } else {
+                    throw new RuntimeException(value + " is not of type INT");
+                }
+            } else if (token.idType.equals("DOUBLE")) {
+                if (value instanceof Number) {
+                    token.idValue = ((Number) value).doubleValue();
+                } else {
+                    throw new RuntimeException(value + " is an unknown type");
                 }
             } else {
-                token.idValue = ((Number) value).doubleValue();
+                throw new RuntimeException(token.idValue + " is an unknown type");
             }
-            // Object Tvalue = token.getValue();
 
-            // if (Tvalue instanceof Integer) {
-            //     Token<Integer> token2 = (Token<Integer>) token;
-            //     token2.setValue((int) value);
-            // }
+        } else {
+            throw new RuntimeException(id + "not found");
         }
 
     }
@@ -736,8 +818,6 @@ public class Interpreter {
                 return (Number) node.value;
             }
         }
-
-        // return null;
 
     }
 
@@ -787,32 +867,31 @@ public class Interpreter {
 
             if (root != null) {
 
-                System.out.println(root.toString());
+                if (printTree) {
+                    System.out.println(root.toString());
 
-                for (Node func : functionParseTrees.values()) {
-                    System.out.println(func.toString());
+                    for (Node func : functionParseTrees.values()) {
+                        System.out.println(func.toString());
+                    }
                 }
 
-                // System.out.println(formatedCode);
+                if (printTables) {
+                    printSymbolTables();
+                }
 
-                printSymbolTables();
-
-                executionStack.push(symbolTables.get(MAIN_SYMBOL_TABLE_ID));
-                returnStack.push(new ReturnVal());
-                Eval(root);
-
-                printSymbolTables();
+                return root;
 
             } else {
-            // System.out.println(formatedCode);
+            System.out.println(formatedCode);
                 System.err.println("Error Invalid program format");
             }
+        } catch (ParseException e) {
+
+            System.out.println(formatedCode);
+            System.err.println("ParseException " + e.getMessage());
+
         } catch (Exception e) {
-
-            // System.out.println(formatedCode);
-            System.err.println(e.getMessage());
             e.printStackTrace();
-
         }
 
         return null;
@@ -846,7 +925,7 @@ public class Interpreter {
 
     public static void error(String expected, String received) throws Exception {
 
-        throw new Exception("Error at: " + lineCount + ":" + charCount + ": Expected " + expected + " but received " + received);
+        throw new ParseException(lineCount + ":" + charCount + ": Expected " + expected + " but received " + received);
 
     }
 
@@ -894,7 +973,7 @@ public class Interpreter {
 
         if (func != null) {
             match(TOKENS.SEMICOLON.getSymbol());
-            // newLineInFormat();
+            newLineInFormat();
             // func.addChild(fdecls());
             functionParseTrees.put((int) func.value, func);
             fdecls();
@@ -923,13 +1002,13 @@ public class Interpreter {
             func.addChild(params());
             match(")");
 
-            // changeIndent(1);
-            // newLineInFormat();
+            changeIndent(1);
+            newLineInFormat();
 
             func.addChild(declarations());
             func.addChild(statement_seq());
 
-            // changeIndent(-1);
+            changeIndent(-1);
             
             currentSymbolTable = MAIN_SYMBOL_TABLE_ID;
             match("fed");
@@ -985,7 +1064,7 @@ public class Interpreter {
         if (decl != null) {
             match(TOKENS.SEMICOLON.getSymbol());
 
-            // newLineInFormat();
+            newLineInFormat();
             decls.addChild(declarations());
             return decls;
         } else {
@@ -996,7 +1075,7 @@ public class Interpreter {
 
     public static Node decl() throws Exception {
 
-        Node decl = new Node(null, "decl");
+        Node decl = new Node(NODE_TYPE.DECL, "decl");
 
         Node t = type();
 
@@ -1068,11 +1147,11 @@ public class Interpreter {
 
         if (lookahead.getValueString().equals(";")) {
             match(";");
-            // newLineInFormat();
+            newLineInFormat();
             
             return statement_seq();
         } else {
-            // newLineInFormat();
+            newLineInFormat();
             return null;
         }
     }
@@ -1092,8 +1171,8 @@ public class Interpreter {
             statement.addChild(bexpr());
             match("then");
 
-            // changeIndent(1);
-            // newLineInFormat();
+            changeIndent(1);
+            newLineInFormat();
 
             statement.addChild(statement_seq());
             // changeIndent(-1);
@@ -1105,12 +1184,12 @@ public class Interpreter {
             statement.addChild(bexpr());
             match("do");
 
-            // changeIndent(1);
-            // newLineInFormat();
+            changeIndent(1);
+            newLineInFormat();
 
             statement.addChild(statement_seq());
 
-            // changeIndent(-1);
+            changeIndent(-1);
 
             match("od");
             return statement;
@@ -1139,14 +1218,14 @@ public class Interpreter {
         } else if (lookahead.getValueString().equals("else")) {
             match("else");
 
-            // changeIndent(1);
-            // newLineInFormat();
+            changeIndent(1);
+            newLineInFormat();
 
             Node el = new Node(NODE_TYPE.KEYWORD, "else");
 
             el.addChild(statement_seq());
 
-            // changeIndent(-1);
+            changeIndent(-1);
 
             match("fi");
             return el;
@@ -1414,12 +1493,21 @@ public class Interpreter {
         Node bexpr = new Node(null, "bexpr");
 
         Node bt = bterm();
+
+        if (bt == null) {
+            return null;
+        }
         bexpr.addChild(bt);
 
         Node ber = bexpr_rest();
-        bexpr.addChild(ber);
 
-        return (bt != null) ? ((ber == null) ? bt : bexpr) : null;
+        if (ber == null) {
+            return bt;
+        }
+
+        ber.addFirstChild(bt);
+
+        return ber;
 
     }
 
@@ -1427,17 +1515,26 @@ public class Interpreter {
 
         if (lookahead.getValueString().equals("or")) {
 
-            Node ber = new Node(NODE_TYPE.BOP, "or");
+            Node ber = new Node(NODE_TYPE.BOOL, "or");
 
             match("or");
 
             Node bt = bterm();
-            ber.addChild(bt);
 
+            if (bt == null) {
+                return null;
+            }
+
+            
             Node ber2 = bexpr_rest();
+            
+            if (ber2 != null) {
+                ber2.addFirstChild(bt);
+            } else {
+                ber.addFirstChild(bt);
+            }
             ber.addChild(ber2);
-
-            return (bt != null) ? bt : null;
+            return ber;
         }
 
         return null;
@@ -1448,29 +1545,46 @@ public class Interpreter {
         Node bt = new Node(null, "bterm");
 
         Node bf = bfactor();
+        
+        if (bf == null) {
+            return null;
+        }
         bt.addChild(bf);
 
         Node btr = bterm_rest();
-        bt.addChild(btr);
 
-        return (bf != null) ? ((btr == null) ? bf : bt) : null;
+        if (btr == null) {
+            return bf;
+        }
+        btr.addFirstChild(bf);
+
+        return btr;
     }
 
     public static Node bterm_rest() throws Exception {
 
         if (lookahead.getValueString().equals("and")) {
 
-            Node btr = new Node(NODE_TYPE.BOP, "and");
+            Node btr = new Node(NODE_TYPE.BOOL, "and");
 
             match("and");
 
             Node bf = bfactor();
-            btr.addChild(bf);
 
+            if (bf == null) {
+                return null;
+            }
+
+            
             Node btr2 = bterm_rest();
+            
+            if (btr2 != null) {
+                btr2.addFirstChild(bf);
+            } else {
+                btr.addFirstChild(bf);
+            }
             btr.addChild(btr2);
-
-            return (bf != null) ? btr : null;
+            return btr;
         }
 
         return null;
@@ -1484,7 +1598,7 @@ public class Interpreter {
             match(")");
             return bfr;
         } else if (lookahead.getValueString().equals("not")) {
-            Node not = new Node(NODE_TYPE.BOP, "not");
+            Node not = new Node(NODE_TYPE.BOOL, "not");
             match("not");
             Node bf = bfactor();
             not.addChild(bf);
@@ -1633,9 +1747,8 @@ public class Interpreter {
         return null;
     }
 
-    public static void Eval(Node root) {
+    public static void Eval(Node root) throws Exception {
 
-        // System.out.println(root.infoString());
         if (hasReturn()) {
             return;
         }
@@ -1646,15 +1759,6 @@ public class Interpreter {
                 case ASSIGN:
                     eval_assign(root);
                     break;
-                case ID:
-                    break;
-                case TYPE:
-                    // break;
-    
-                case CONSTANT_INT:
-                    break;
-                case CONSTANT_DOUBLE:
-                    break;
                 case OP:
                     eval_op(root);
                     break;
@@ -1664,9 +1768,9 @@ public class Interpreter {
                 case FUNCTION:
                     eval_Function(root);
                     break;
-                case BOOL:
-                    // eval_bool(root);
-                    // break;
+                case DECL:
+                    eval_decl(root);
+                    break;
                 default:
     
                     for (Node child : root.getChilren()) {
@@ -1683,7 +1787,35 @@ public class Interpreter {
 
     }
 
-    public static void eval_assign(Node node) {
+    public static void eval_decl(Node node) {
+        
+        ArrayList<Node> children = node.getChilren();
+
+        // Node type = children.get(0);
+
+        if (children.get(1).type == NODE_TYPE.ID) {
+            initIDValue((int) children.get(1).value);
+        } else if (children.get(1).value.equals("vl")){
+            eval_var_list(children.get(1));
+        }
+
+    }
+
+    public static void eval_var_list(Node node) {
+
+        ArrayList<Node> children = node.getChilren();
+
+        initIDValue((int) children.get(0).value);
+
+        if (children.get(1).value.equals("vl")) {
+            eval_var_list(children.get(1));
+        } else if (children.get(1).type == NODE_TYPE.ID) {
+            initIDValue((int) children.get(1).value);
+        }
+
+    }
+
+    public static void eval_assign(Node node) throws Exception {
 
         ArrayList<Node> children = node.getChilren();
 
@@ -1698,11 +1830,15 @@ public class Interpreter {
 
     }
 
+    public static void updateCurrFunc(int id) {
+        if (id == MAIN_SYMBOL_TABLE_ID) {
+            currFName = "main";
+        } else {
+            currFName = symbolTables.get(MAIN_SYMBOL_TABLE_ID).get(id).token.value.toString();
+        }
+    }
     
-    /**
-     * Makes a deep copy of any Java object that is passed.
-     */
-    private static Object deepCopy(Object object) {
+    public static Object deepCopy(Object object) {
         try {
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             ObjectOutputStream outputStrm = new ObjectOutputStream(outputStream);
@@ -1733,9 +1869,11 @@ public class Interpreter {
 
     }
 
-    public static void eval_Function(Node node) {
+    public static void eval_Function(Node node) throws Exception {
 
         ArrayList<Node> children = node.getChilren();
+
+        updateCurrFunc((int) children.get(0).value);
 
         // Set values of params in table
 
@@ -1760,10 +1898,13 @@ public class Interpreter {
         }
 
         // Push function code to stack
+        Node functionRoot = functionParseTrees.get((int) children.get(0).value);
+
+        if (functionRoot == null) {
+            throw new RuntimeException(currFName + " is not a function");
+        }
 
         executionStack.push(getStackFrame((int) children.get(0).value));
-
-        Node functionRoot = functionParseTrees.get((int) children.get(0).value);
 
         returnStack.push(new ReturnVal());
 
@@ -1798,16 +1939,13 @@ public class Interpreter {
 
         }
 
+        updateCurrFunc(MAIN_SYMBOL_TABLE_ID);
         returnStack.pop();
         executionStack.pop();
 
-        // Eval function contents
-
-        // Set cVal of node to function result.
-
     }
 
-    public static void eval_params(Node node, ArrayList<Number> passedParams, int i) {
+    public static void eval_params(Node node, ArrayList<Number> passedParams, int i) throws Exception {
 
         ArrayList<Node> children = node.getChilren();
 
@@ -1815,26 +1953,27 @@ public class Interpreter {
         Node id = children.get(1);
 
         if (i < 0 || i >= passedParams.size()) {
-            // TODO: RUNTIME ERROR
-            return;
+            throw new RuntimeException("To few Params passed to function " + currFName);
         }
 
         Number value = passedParams.get(i);
         if ((value instanceof Integer && type.value.equals("INT")) 
             || (type.value.equals("DOUBLE"))) {
-            
+            initIDValue((int) id.value);
             setIDValue((int) id.value, value);
         } else {
-            System.err.println("Type Error");
+            throw new RuntimeException(node.value + " Type Error");
         }
         
         if (children.size() > 2 && children.get(2).type == NODE_TYPE.PARAMS) {
             eval_params(children.get(2), passedParams, i + 1);
+        } else if (i < passedParams.size() - 1) {
+            throw new RuntimeException("To Many Params passed to function " + currFName);
         }
 
     }
 
-    public static void eval_op(Node node) {
+    public static void eval_op(Node node) throws Exception {
 
         if (node.value instanceof String) {
 
@@ -1852,9 +1991,6 @@ public class Interpreter {
             Number val1 = getNodeValue(children.get(0));
             Number val2 = getNodeValue(children.get(1));
 
-            // NODE_TYPE type = ((val1 instanceof Double) || (val2 instanceof Double)) 
-            // ? NODE_TYPE.CONSTANT_DOUBLE : NODE_TYPE.CONSTANT_INT;
-
             switch (val) {
 
                 case "+":
@@ -1862,11 +1998,9 @@ public class Interpreter {
                     if ((val1 instanceof Integer) && (val2 instanceof Integer)) {
                         int val3 = val1.intValue() + val2.intValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     } else {
                         double val3 = val1.doubleValue() + val2.doubleValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     }
                     break;
 
@@ -1874,11 +2008,9 @@ public class Interpreter {
                     if ((val1 instanceof Integer) && (val2 instanceof Integer)) {
                         int val3 = val1.intValue() - val2.intValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     } else {
                         double val3 = val1.doubleValue() - val2.doubleValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     }
                     break;
 
@@ -1886,11 +2018,9 @@ public class Interpreter {
                     if ((val1 instanceof Integer) && (val2 instanceof Integer)) {
                         int val3 = val1.intValue() / val2.intValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     } else {
                         double val3 = val1.doubleValue() / val2.doubleValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     }
                     break;
                 
@@ -1898,11 +2028,9 @@ public class Interpreter {
                     if ((val1 instanceof Integer) && (val2 instanceof Integer)) {
                         int val3 = val1.intValue() % val2.intValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     } else {
                         double val3 = val1.doubleValue() % val2.doubleValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     }
                     break;
                 
@@ -1910,11 +2038,9 @@ public class Interpreter {
                     if ((val1 instanceof Integer) && (val2 instanceof Integer)) {
                         int val3 = val1.intValue() * val2.intValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     } else {
                         double val3 = val1.doubleValue() * val2.doubleValue();
                         node.setCValue(val3);
-                        // node.setType(type);
                     }
                     break;
 
@@ -1924,17 +2050,7 @@ public class Interpreter {
 
     }
 
-    public static boolean eval_bop(Node node) {
-
-        return false;
-        // Eval(children.get(0));
-        // Eval(children.get(1));
-
-        // Number val1 = getNodeValue(children.get(0));
-        // Number val2 = getNodeValue(children.get(1));
-    }
-
-    public static boolean eval_bool(Node node) {
+    public static boolean eval_bool(Node node) throws Exception {
 
         if (hasReturn()) {
             return false;
@@ -1945,30 +2061,54 @@ public class Interpreter {
             String val = (String) node.value;
             ArrayList<Node> children = node.getChilren();
 
-            Number val1 = getNodeValue(children.get(0));
-            Number val2 = getNodeValue(children.get(1));
+            if (val.equals("or") || val.equals("and") || val.equals("not")) {
 
-            switch (val) {
+                boolean val1 = eval_bool(children.get(0));
+                boolean val2 = false;
+                if (!val.equals("not")) {
+                    val2 = eval_bool(children.get(1));
+                }
 
-                case "<":
-                    return val1.doubleValue() < val2.doubleValue();
-                case ">":
-                    return val1.doubleValue() > val2.doubleValue();
-                case "==":
-                    return val1.doubleValue() == val2.doubleValue();
-                case "<=":
-                    return val1.doubleValue() <= val2.doubleValue();
-                case ">=":
-                    return val1.doubleValue() <= val2.doubleValue();
-                case "<>":
-                    return val1.doubleValue() != val2.doubleValue();
+                switch (val) {
+
+                    case "or":
+                        return val1 || val2;
+                    case "and":
+                        return val1 && val2;
+                    case "not":
+                        return !val1;
+                }
+
+            } else {
+
+                Eval(children.get(0));
+                Eval(children.get(0));
+
+                Number val1 = getNodeValue(children.get(0));
+                Number val2 = getNodeValue(children.get(1));
+
+                switch (val) {
+
+                    case "<":
+                        return val1.doubleValue() < val2.doubleValue();
+                    case ">":
+                        return val1.doubleValue() > val2.doubleValue();
+                    case "==":
+                        return val1.doubleValue() == val2.doubleValue();
+                    case "<=":
+                        return val1.doubleValue() <= val2.doubleValue();
+                    case ">=":
+                        return val1.doubleValue() <= val2.doubleValue();
+                    case "<>":
+                        return val1.doubleValue() != val2.doubleValue();
+                }
             }
         }
 
         return false;
     }
 
-    public static void eval_keyword(Node node) {
+    public static void eval_keyword(Node node) throws Exception {
 
         if (hasReturn()) {
             return;
@@ -1978,10 +2118,6 @@ public class Interpreter {
 
             String val = (String) node.value;
             ArrayList<Node> children = node.getChilren();
-
-            // Number val1 = getNodeValue(children.get(0));
-            // Number val2 = getNodeValue(children.get(1));
-            
 
             switch (val) {
 

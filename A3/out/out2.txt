@@ -1,0 +1,15 @@
+test2.txt
+=============================
+int a,b,r;
+a=21; b=1r5;
+while (b<>0) do
+	r = a % b;
+	a=b;
+	b=r;
+od;
+print(a).
+=============================
+int a, b, r;
+a=21;
+b=
+ParseException 2:10: Expected id, number or - but received 1r
