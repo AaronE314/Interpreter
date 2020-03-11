@@ -1,0 +1,9 @@
+def int gcd()
+	int x;
+	x=5
+fed;
+int x;
+double y; 
+x = 0;
+y = gcd() ;
+print(y).

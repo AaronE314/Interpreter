@@ -771,6 +771,7 @@ public class Interpreter {
 
         if (sv == null) {
             sv = symbolTables.get(MAIN_SYMBOL_TABLE_ID).get(id);
+
         }
 
         if (sv != null) {
@@ -778,7 +779,23 @@ public class Interpreter {
             Token<?> token = sv.getToken();
 
             if (token.idValue == null) {
-                throw new RuntimeException(token.value + " has not been declared");
+
+                Integer id2 = symbolNameToIDTables.get(MAIN_SYMBOL_TABLE_ID).get(token.value);
+                if (id2 != null) {
+                    sv = symbolTables.get(MAIN_SYMBOL_TABLE_ID).get(id2);
+                    if (sv == null) {
+                        throw new RuntimeException(token.value + " has not been declared");
+                    }
+                } else {
+                    throw new RuntimeException(token.value + " has not been declared");
+                }
+
+                token = sv.getToken();
+
+                if (token.idType == null) {
+                    throw new RuntimeException(token.value + " has not been declared");
+                }
+
             }
             
             if (token.idType.equals("INT")) {
@@ -807,7 +824,26 @@ public class Interpreter {
 
         if (node.type == NODE_TYPE.ID) {
 
-            return (Number) executionStack.peek().get((int) node.value).getToken().idValue;
+            Number val = (Number) executionStack.peek().get((int) node.value).getToken().idValue;
+
+            if (val == null) {
+                Token<?> t = executionStack.peek().get((int) node.value).getToken();
+                Integer id = symbolNameToIDTables.get(MAIN_SYMBOL_TABLE_ID).get(executionStack.peek().get((int) node.value).getToken().value);
+                if (id != null) {
+                    SymbolValue sv = symbolTables.get(MAIN_SYMBOL_TABLE_ID).get(id);
+                    if (sv == null) {
+                        throw new RuntimeException("The value of " + t.value + " is null");
+                    }
+                    val = (Number) sv.getToken().idValue;
+
+                    if (val == null) {
+                        throw new RuntimeException("The value of " + t.value + " is null");
+                    }
+                } else {
+                    throw new RuntimeException("The value of " + t.value + " is null");
+                }
+            }
+            return val;
 
         } else if (node.type == NODE_TYPE.CONSTANT_DOUBLE || node.type == NODE_TYPE.CONSTANT_INT) {
             return (Number) node.value;
@@ -1436,15 +1472,29 @@ public class Interpreter {
         } else if (lookahead.getValueString().equals("-")) {
             match("-");
             num = number();
-            Token<?> val = num.getToken();
-            if (val != null) {
-                Token<?> val2 = symbolTables.get(currentSymbolTable).get(val.getConstId()).getToken();
-                val2.flipSign();
+            if (num != null) {
+                Token<?> val = num.getToken();
+                if (val != null) {
+                    Token<?> val2 = symbolTables.get(currentSymbolTable).get(val.getConstId()).getToken();
+                    val2.flipSign();
+                }
+                return num;
+            } else {
+                num = id(null);
+
+                if (num == null) {
+                    error("number or id", lookahead.getValueString());
+                } else {
+                    Node node = new Node(NODE_TYPE.OP, "-");
+                    node.addChild(new Node(NODE_TYPE.CONSTANT_INT, 0));
+                    node.addChild(num);
+
+                    return node;
+                }
             }
-            return num;
         }
 
-        error("id, number or -", lookahead.getValueString());
+        // error("id, number or -", lookahead.getValueString());
         return null;
     }
 

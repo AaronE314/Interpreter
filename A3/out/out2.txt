@@ -12,4 +12,5 @@ print(a).
 int a, b, r;
 a=21;
 b=
-ParseException 2:10: Expected id, number or - but received 1r
+
+ParseException 2:10: Expected . but received 1r
