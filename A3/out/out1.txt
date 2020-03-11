@@ -8,4 +8,41 @@ od;
 print(x);.
 
 =============================
+root
+|-- decls
+|   |__ DECL: decl
+|       |-- TYPE: INT
+|       |__ vl
+|           |-- ID: 14
+|           |__ ID: 15
+|__ sateSeq
+    |-- ASSIGN: =
+    |   |-- ID: 14
+    |   |__ CONSTANT_INT: 0
+    |__ sateSeq
+        |-- ASSIGN: =
+        |   |-- ID: 15
+        |   |__ CONSTANT_INT: 1
+        |__ sateSeq
+            |-- KEYWORD: while
+            |   |-- BOOL: <
+            |   |   |-- ID: 15
+            |   |   |__ CONSTANT_INT: 10
+            |   |__ sateSeq
+            |       |-- ASSIGN: =
+            |       |   |-- ID: 14
+            |       |   |__ OP: +
+            |       |       |-- ID: 14
+            |       |       |__ OP: *
+            |       |           |-- ID: 15
+            |       |           |__ ID: 15
+            |       |__ ASSIGN: =
+            |           |-- ID: 15
+            |           |__ OP: +
+            |               |-- ID: 15
+            |               |__ CONSTANT_INT: 1
+            |__ KEYWORD: print
+                |__ ID: 14
+
+Program Output:
 285

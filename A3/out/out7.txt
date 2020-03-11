@@ -9,4 +9,43 @@ while (b<>0) do
 od;
 print(a).
 =============================
+root
+|-- decls
+|   |__ DECL: decl
+|       |-- TYPE: INT
+|       |__ vl
+|           |-- ID: 14
+|           |__ vl
+|               |-- ID: 15
+|               |__ ID: 16
+|__ sateSeq
+    |-- ASSIGN: =
+    |   |-- ID: 14
+    |   |__ CONSTANT_INT: 21
+    |__ sateSeq
+        |-- ASSIGN: =
+        |   |-- ID: 15
+        |   |__ CONSTANT_INT: 15
+        |__ sateSeq
+            |-- KEYWORD: while
+            |   |-- BOOL: <>
+            |   |   |-- ID: 15
+            |   |   |__ CONSTANT_INT: 0
+            |   |__ sateSeq
+            |       |-- ASSIGN: =
+            |       |   |-- ID: 16
+            |       |   |__ OP: %
+            |       |       |-- ID: 14
+            |       |       |__ ID: 15
+            |       |__ sateSeq
+            |           |-- ASSIGN: =
+            |           |   |-- ID: 14
+            |           |   |__ ID: 15
+            |           |__ ASSIGN: =
+            |               |-- ID: 15
+            |               |__ ID: 16
+            |__ KEYWORD: print
+                |__ ID: 14
+
+Program Output:
 3

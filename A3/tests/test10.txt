@@ -1,0 +1,10 @@
+def double add(double x, double y)
+    return (x + y);
+fed;
+def double square(double x)
+    return (x * x);
+fed;
+double a, b;
+a=2;
+b=4;
+print add(2, square(4));.

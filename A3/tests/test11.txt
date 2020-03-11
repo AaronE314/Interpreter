@@ -1,0 +1,14 @@
+def int recursesub(int a)
+    int b;
+    b = 2;
+    if (a > 0) then
+        print(a);
+        a = a - 1;
+        b = recursesub(a);
+    fi;
+    return 1;
+fed;
+
+int a;
+a = 10;
+a = recursesub(a);.

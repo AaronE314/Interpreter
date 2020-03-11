@@ -21,4 +21,78 @@ d = max(max(a,b),c);
 print(d).
 
 =============================
+root
+|-- decls
+|   |__ DECL: decl
+|       |-- TYPE: INT
+|       |__ vl
+|           |-- ID: 18
+|           |__ vl
+|               |-- ID: 19
+|               |__ vl
+|                   |-- ID: 20
+|                   |__ ID: 21
+|__ sateSeq
+    |-- ASSIGN: =
+    |   |-- ID: 18
+    |   |__ CONSTANT_INT: 2
+    |__ sateSeq
+        |-- ASSIGN: =
+        |   |-- ID: 19
+        |   |__ OP: -
+        |       |-- OP: *
+        |       |   |-- ID: 18
+        |       |   |__ CONSTANT_INT: 2
+        |       |__ CONSTANT_INT: 3
+        |__ sateSeq
+            |-- ASSIGN: =
+            |   |-- ID: 20
+            |   |__ OP: +
+            |       |-- OP: /
+            |       |   |-- ID: 19
+            |       |   |__ ID: 18
+            |       |__ CONSTANT_INT: 1
+            |__ sateSeq
+                |-- ASSIGN: =
+                |   |-- ID: 21
+                |   |__ FUNCTION: Func Call
+                |       |-- ID: 14
+                |       |__ exprseq
+                |           |-- FUNCTION: Func Call
+                |           |   |-- ID: 14
+                |           |   |__ exprseq
+                |           |       |-- ID: 18
+                |           |       |__ ID: 19
+                |           |__ ID: 20
+                |__ KEYWORD: print
+                    |__ ID: 21
+
+FUNCTION: 14
+|-- TYPE: INT
+|-- PARAMS: params
+|   |-- TYPE: INT
+|   |-- ID: 15
+|   |__ PARAMS: params
+|       |-- TYPE: INT
+|       |__ ID: 16
+|-- decls
+|   |__ DECL: decl
+|       |-- TYPE: INT
+|       |__ ID: 17
+|__ sateSeq
+    |-- KEYWORD: if
+    |   |-- BOOL: >
+    |   |   |-- ID: 15
+    |   |   |__ ID: 16
+    |   |-- ASSIGN: =
+    |   |   |-- ID: 17
+    |   |   |__ ID: 15
+    |   |__ KEYWORD: else
+    |       |__ ASSIGN: =
+    |           |-- ID: 17
+    |           |__ ID: 16
+    |__ KEYWORD: return
+        |__ ID: 17
+
+Program Output:
 2

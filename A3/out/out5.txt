@@ -9,4 +9,71 @@ od;
 print(x);.
 
 =============================
+root
+|-- decls
+|   |__ DECL: decl
+|       |-- TYPE: INT
+|       |__ vl
+|           |-- ID: 14
+|           |__ ID: 15
+|__ sateSeq
+    |-- ASSIGN: =
+    |   |-- ID: 14
+    |   |__ CONSTANT_INT: 0
+    |__ sateSeq
+        |-- ASSIGN: =
+        |   |-- ID: 15
+        |   |__ CONSTANT_INT: 1
+        |__ sateSeq
+            |-- KEYWORD: while
+            |   |-- BOOL: <
+            |   |   |-- ID: 15
+            |   |   |__ CONSTANT_INT: 10
+            |   |__ sateSeq
+            |       |-- KEYWORD: if
+            |       |   |-- BOOL: >
+            |       |   |   |-- ID: 15
+            |       |   |   |__ CONSTANT_INT: 2
+            |       |   |-- ASSIGN: =
+            |       |   |   |-- ID: 14
+            |       |   |   |__ OP: *
+            |       |   |       |-- CONSTANT_INT: 2
+            |       |   |       |__ ID: 14
+            |       |   |__ KEYWORD: else
+            |       |       |__ sateSeq
+            |       |           |-- ASSIGN: =
+            |       |           |   |-- ID: 14
+            |       |           |   |__ OP: *
+            |       |           |       |-- ID: 14
+            |       |           |       |__ ID: 14
+            |       |           |__ KEYWORD: if
+            |       |               |-- BOOL: >
+            |       |               |   |-- ID: 14
+            |       |               |   |__ CONSTANT_INT: 2
+            |       |               |-- ASSIGN: =
+            |       |               |   |-- ID: 14
+            |       |               |   |__ OP: +
+            |       |               |       |-- ID: 15
+            |       |               |       |__ ID: 14
+            |       |               |__ KEYWORD: else
+            |       |                   |__ ASSIGN: =
+            |       |                       |-- ID: 14
+            |       |                       |__ ID: 15
+            |       |__ sateSeq
+            |           |-- ASSIGN: =
+            |           |   |-- ID: 14
+            |           |   |__ OP: +
+            |           |       |-- ID: 14
+            |           |       |__ OP: *
+            |           |           |-- ID: 15
+            |           |           |__ ID: 15
+            |           |__ ASSIGN: =
+            |               |-- ID: 15
+            |               |__ OP: +
+            |                   |-- ID: 15
+            |                   |__ CONSTANT_INT: 1
+            |__ KEYWORD: print
+                |__ ID: 14
+
+Program Output:
 3461
